@@ -1,0 +1,954 @@
+/usr/sbin/cephadm shell --fsid f50cce0e-11c7-11ec-97ab-005056b06bd1 -c /etc/ceph/ceph.conf -k /etc/ceph/ceph.client.admin.keyring
+
+
+Net/Disk/hosts already setup (SET-NTP) (FIREWALL-OFF)
+```
+dnf info oracle-epel-release-el8.x86_64
+```
+
+
+nano /etc/yum.repos.d/ceph.repo
+
+```
+[ceph] 
+name=Ceph packages for $basearch 
+baseurl=https://download.ceph.com/rpm-pacific/el8/$basearch 
+enabled=1 
+priority=2 
+gpgcheck=1 
+gpgkey=https://download.ceph.com/keys/release.asc 
+[ceph-noarch] 
+name=Ceph noarch packages 
+baseurl=https://download.ceph.com/rpm-pacific/el8/noarch 
+enabled=1 
+priority=2 
+gpgcheck=1 
+gpgkey=https://download.ceph.com/keys/release.asc 
+[ceph-source] 
+name=Ceph source packages 
+baseurl=https://download.ceph.com/rpm-pacific/el8/SRPMS 
+enabled=0 
+priority=2 
+gpgcheck=1 
+gpgkey=https://download.ceph.com/keys/release.asc
+```
+
+dnf update
+dnf install -y podman cephadm
+```
+yum-config-manager --enable ol8_developer_EPEL
+```
+
+```
+dnf install ansible ansible-doc
+```
+mkdir ~/ansible
+touch /root/ansible/ansible.log
+chmod 777 /root/ansible/ansible.log
+
+```
+pip3 install notario
+cd /usr/share
+git clone https://github.com/ceph/ceph-ansible.git
+cd ceph-ansible 
+cp site.yml.sample site.yml 
+cp site-container.yml.sample site-container.yml
+cd /root/git
+git clone https://github.com/red-hat-storage/cockpit-ceph-installer.git
+cd cockpit-ceph-installer
+ln -snf /usr/share/cockpit-ceph-installer/dist /usr/share/cockpit/cockpit-ceph-installer
+systemctl restart cockpit.socket
+cp /usr/share/cockpit-ceph-installer/utils/ansible/checkrole.yml /usr/share/ceph-ansible/
+cp /usr/share/cockpit-ceph-installer/utils/ansible/library/ceph_check_role.py /usr/share/ceph-ansible/library/
+cd /usr/share/cockpit-ceph-installer/utils
+./ansible-runner-service.sh -s -v
+```
+
+
+```
+./cephadm install
+```
+
+cephadm bootstrap --mon-ip  10.1.6.10  --initial-dashboard-user anon  --initial-dashboard-password password --dashboard-password-noupdate --allow-mismatched-release --cluster-network 10.1.6.0/24
+
+
+```
+cephadm add-repo --release pacific 
+```
+
+
+```
+ceph mgr module disable dashboard && ceph mgr module disable prometheus && ceph mgr module enable dashboard && ceph mgr module enable prometheus
+```
+
+```
+ceph osd pool set my_ec_pool allow_ec_overwrites true
+```
+rbd create REPL01/RDM02 --size 15G --data-pool ECP01
+
+```
+$ ceph osd pool create cephfs_data
+$ ceph osd pool create cephfs_metadata
+```
+
+```
+$ ceph fs new cephfs cephfs_metadata cephfs_data
+$ ceph fs ls
+name: cephfs, metadata pool: cephfs_metadata, data pools: [cephfs_data ]
+```
+
+ceph orch apply osd --all-available-devices
+```
+ceph config generate-minimal-conf
+```
+
+Inferring fsid f50cce0e-11c7-11ec-97ab-005056b06bd1
+Inferring config /var/lib/ceph/f50cce0e-11c7-11ec-97ab-005056b06bd1/mon.admin/config
+Using recent ceph image quay.io/ceph/ceph@sha256:829ebf54704f2d827de00913b171e5da741aad9b53c1f35ad59251524790eceb
+# minimal ceph.conf for f50cce0e-11c7-11ec-97ab-005056b06bd1
+[global]
+        fsid = f50cce0e-11c7-11ec-97ab-005056b06bd1
+        mon_host = [v2:10.1.6.10:3300/0,v1:10.1.6.10:6789/0] [v2:10.1.6.11:3300/0,v1:10.1.6.11:6789/0] [v2:10.1.6.12:3300/0,v1:10.1.6.12:6789/0] [v2:10.1.6.13:3300/0,v1:10.1.6.13:6789/0]
+[root@admin conf.d]# ceph auth get-or-create client.fs
+Inferring fsid f50cce0e-11c7-11ec-97ab-005056b06bd1
+Inferring config /var/lib/ceph/f50cce0e-11c7-11ec-97ab-005056b06bd1/mon.admin/config
+Using recent ceph image quay.io/ceph/ceph@sha256:829ebf54704f2d827de00913b171e5da741aad9b53c1f35ad59251524790eceb
+[client.fs]
+        key = AQCl2Dth+bueJBAAvk9uWvNV7DbppEvlTxo5Tw==
+Ceph Dashboard is now available at:
+
+             URL: https://ceph1.local:8443/
+            User: anon
+        Password: password
+
+Enabling client.admin keyring and conf on hosts with "admin" label
+You can access the Ceph CLI with:
+
+        sudo /usr/sbin/cephadm shell --fsid 95bb2116-10b5-11ec-b5ec-005056b06107 -c /etc/ceph/ceph.conf -k /etc/ceph/ceph.client.admin.keyring
+
+Please consider enabling telemetry to help improve Ceph:
+
+ceph telemetry on
+ceph mgr module enable mds_autoscaler
+
+-h, --help            show this help message and exit
+  --config CONFIG, -c CONFIG
+                        ceph conf file to incorporate
+  --mon-id MON_ID       mon id (default: local hostname)
+  --mon-addrv MON_ADDRV
+                        mon IPs (e.g.,
+                        [v2:localipaddr:3300,v1:localipaddr:6789])
+  --mon-ip MON_IP       mon IP
+  --mgr-id MGR_ID       mgr id (default: randomly generated)
+  --fsid FSID           cluster FSID
+  --output-dir OUTPUT_DIR
+                        directory to write config, keyring, and pub key files
+  --output-keyring OUTPUT_KEYRING
+                        location to write keyring file with new cluster admin
+                        and mon keys
+  --output-config OUTPUT_CONFIG
+                        location to write conf file to connect to new cluster
+  --output-pub-ssh-key OUTPUT_PUB_SSH_KEY
+                        location to write the cluster's public SSH key
+  --skip-admin-label    do not create admin label for ceph.conf and
+                        client.admin keyring distribution
+  --skip-ssh            skip setup of ssh key on local host
+  --initial-dashboard-user INITIAL_DASHBOARD_USER
+                        Initial user for the dashboard
+  --initial-dashboard-password INITIAL_DASHBOARD_PASSWORD
+                        Initial password for the initial dashboard user
+  --ssl-dashboard-port SSL_DASHBOARD_PORT
+                        Port number used to connect with dashboard using SSL
+  --dashboard-key DASHBOARD_KEY
+                        Dashboard key
+  --dashboard-crt DASHBOARD_CRT
+                        Dashboard certificate
+  --ssh-config SSH_CONFIG
+                        SSH config
+  --ssh-private-key SSH_PRIVATE_KEY
+                        SSH private key
+  --ssh-public-key SSH_PUBLIC_KEY
+                        SSH public key
+  --ssh-user SSH_USER   set user for SSHing to cluster hosts, passwordless
+                        sudo will be needed for non-root users
+  --skip-mon-network    set mon public_network based on bootstrap mon ip
+  --skip-dashboard      do not enable the Ceph Dashboard
+  --dashboard-password-noupdate
+                        stop forced dashboard password change
+  --no-minimize-config  do not assimilate and minimize the config file
+  --skip-ping-check     do not verify that mon IP is pingable
+  --skip-pull           do not pull the latest image before bootstrapping
+  --skip-firewalld      Do not configure firewalld
+  --allow-overwrite     allow overwrite of existing --output-*
+                        config/keyring/ssh files
+  --allow-fqdn-hostname
+                        allow hostname that is fully-qualified (contains ".")
+  --allow-mismatched-release
+                        allow bootstrap of ceph that doesn't match this
+                        version of cephadm
+  --skip-prepare-host   Do not prepare host
+  --orphan-initial-daemons
+                        Set mon and mgr service to `unmanaged`, Do not create
+                        the crash service
+  --skip-monitoring-stack
+                        Do not automatically provision monitoring stack
+                        (prometheus, grafana, alertmanager, node-exporter)
+  --apply-spec APPLY_SPEC
+                        Apply cluster spec after bootstrap (copy ssh key, add
+                        hosts and apply services)
+  --shared_ceph_folder CEPH_SOURCE_FOLDER
+                        Development mode. Several folders in containers are
+                        volumes mapped to different sub-folders in the ceph
+                        source folder
+  --registry-url REGISTRY_URL
+                        url for custom registry
+  --registry-username REGISTRY_USERNAME
+                        username for custom registry
+  --registry-password REGISTRY_PASSWORD
+                        password for custom registry
+  --registry-json REGISTRY_JSON
+                        json file with custom registry login info (URL,
+                        Username, Password)
+  --with-exporter       Automatically deploy cephadm metadata exporter to each
+                        node
+  --exporter-config EXPORTER_CONFIG
+                        Exporter configuration information in JSON format
+                        (providing: key, crt, token, port information)
+  --cluster-network CLUSTER_NETWORK
+                        subnet to use for cluster replication, recovery and
+                        heartbeats (in CIDR notation network/mask)
+  --single-host-defaults
+                        adjust configuration defaults to suit a single-host
+                        cluster
+
+
+1  apt-get update
+    2  yum update
+    3  dnf install cephadm
+    4  dnf install ceph-adm
+    5  ip a
+    6  reboot now
+    7  curl --silent --remote-name --location https://github.com/ceph/ceph/raw/pacific/src/cephadm/cephadm
+    8  chmod +x cephadm 
+    9  ll
+   10  ./cephadm add-repo --release pacific
+   11  nano /etc/yum.repos.d/ceph.repo
+   12  dnf update
+   13  dnf search libfmt.so.6
+   14  dnf search libfmt.so
+   15  dnf search libfmt
+   16  dnf install fmt
+   17  cd /etc/yum.repos.d/
+   18  ll
+   19  nano uek-ol8.repo 
+   20  nano virt-ol8.repo 
+   21  vim /etc/yum.repos.d/ol8-epel.repo
+   22  dnf update
+   23  dnf makecache
+   24  nano uek-ol8.repo 
+   25  dnf makecache
+   26  dnf update
+   27  cephadm
+   28  ll
+   29  cd /root
+   30  ll
+   31  ./cephadm 
+   32  ./cephadm install
+   33  which cephadm
+   34  history
+   35  nano /etc/yum.repos.d/ceph.repo
+   36  vim /etc/yum.repos.d/ol8-epel.repo
+   37  cat cephadm 
+   38  nano cephadm 
+   39  ./cephadm 
+   40  ./cephadm install
+   41  nano cephadm 
+   42  dnf install -y podman cephadm
+   43  rm cephadm 
+   44  cephadm
+   45  cephadm install
+   46  cephadm bootstrap -h
+   47  ip a
+   48  nmcli device set ens256 managed yes
+   49  nmcli con add type ethernet con-name eth1 ifname ens256 ip4 10.1.99.1/24 ipv4.never-default true ipv6.method ignore 802-3-ethernet.mtu 9000
+   50  nmcli con add type
+   51  nmcli con add type --help
+   52  nmcli --help
+   53  nmcli con --help
+   54  nmcli con mod ens256 ip4 10.1.99.1/24 ipv4.never-default true ipv6.method ignore 802-3-ethernet.mtu 9000
+   55  nmcli con show
+   56  nmcli con add --help
+   57  nmcli con add
+   58  nmcli con add type ethernet
+   59  nmcli con del type ethernet
+   60  nmcli con add type ethernet fname ens256 ip4 10.1.99.1/24 ipv4.never-default true ipv6.method ignore 802-3-ethernet.mtu 9000
+   61  nmcli con add type ethernet ifname ens256 ip4 10.1.99.1/24 ipv4.never-default true ipv6.method ignore 802-3-ethernet.mtu 9000
+   62  nmcli con show
+   63  systemctl disable firewalld
+   64  systemctl stop firewalld
+   65  cephadm add-repo --release pacific
+   66  cephadm bootstrap --mon-ip  10.1.99.1  --initial-dashboard-user anon  --initial-dashboard-password password --dashboard-password-noupdate --allow-mismatched-release --cluster-network 10.1.99.0/24
+   67  cephadm bootstrap --mon-ip  10.1.99.1  --initial-dashboard-user anon  --initial-dashboard-password password --dashboard-password-noupdate --allow-mismatched-release --cluster-network 10.1.99.0/24 --allow-fqdn-hostname
+   68  ceph telemetry on
+   69  /usr/sbin/cephadm shell --fsid 95bb2116-10b5-11ec-b5ec-005056b06107 -c /etc/ceph/ceph.conf -k /etc/ceph/ceph.client.admin.keyring
+   70  systemctl enable --now cockpit.socket
+   71  systemctl start --now cockpit.socket
+   72  systemctl start sshd
+   73  systemctl enable sshd
+   74  /usr/sbin/cephadm shell --fsid 95bb2116-10b5-11ec-b5ec-005056b06107 -c /etc/ceph/ceph.conf -k /etc/ceph/ceph.client.admin.keyring
+   75  systemctl disable firewalld
+   76  systemctl stop firewalld
+   77  ping 10.1.6.103
+   78  lsof | grep listen
+   79  lsof
+   80  vi /etc/default/grub
+   81  grub2-mkconfig -o /boot/grub2/grub.cfg
+   82  reboot now
+   83  ping ceph2.local
+   84  systemctl | grep ceph
+   85  ceph orch host label add 10.1.6.105 _admin
+   86  ping 10.1.6.105
+   87  yum install ntp ntpdate ntp-doc
+   88  dnf install ntp ntpdate ntp-doc
+   89  dnf install ntp
+   90  exit
+   91  cd /etc
+   92  cd yum
+   93  ll
+   94  cd ..
+   95  cd yum.repos.d/
+   96  ll
+   97  cat ol8-epel.repo 
+   98  dnf seatch ntp
+   99  dnf search ntp
+  100  dnf install systemd-timesyncd.x86_64
+  101  timedatectl
+  102  alias ceph='cephadm shell -- ceph'
+  103  echo "alias ceph='cephadm shell -- ceph'" >> ~/.bashrc
+  104  ceph -v
+  105  ceph -s
+  106  podman ps
+  107  systemctl status ceph-* --no-pager
+  108  ssh ceph2.local
+  109  history
+  110  ssh ceph2.local
+  111  nano /etc/ssh/sshd_config
+  112  systemctl restart sshd
+  113  nano /etc/ssh/sshd_config
+  114  systemctl restart sshd
+  115  ls -al ~/.ssh/id_*.pub
+  116  ssh-keygen -t rsa -b 4096 -C "no@way.com"
+  117  ssh-copy-id root@10.1.6.105
+  118  ssh-copy-id root@10.1.6.106
+  119  ssh-copy-id root@10.1.6.103
+  120  systemctl restart sshd
+  121  nano /root/.ssh/id_rsa.pub
+  122  rm /root/.ssh/id_rsa.pub
+  123  cd /root/.ssh/
+  124  ls
+  125  ls -lah
+  126  cat known_hosts 
+  127  rm /root/.ssh/known_hosts 
+  128  systemctl reload sshd.service
+  129  ssh-keygen -t rsa -b 4096 -C "no@way.com"
+  130  ssh-copy-id root@10.1.6.105
+  131  ssh-copy-id root@10.1.6.106
+  132  ssh-copy-id root@10.1.6.105
+  133  root@10.1.6.106
+  134  ssh root@10.1.6.106
+  135  ssh root@10.1.6.105
+  136  ls
+  137  cat known_hosts 
+  138  cat id_rsa
+  139  cat id_rsa.pub 
+  140  ls
+  141  cat authorized_keys 
+  142  ls ~/.ssh/id_*
+  143  reboot now
+  144  systemctl status ceph-* --no-pager
+  145  dnf module -y install python39
+  146  man python
+  147  !
+  148  python3 -V
+  149  alternatives --config python
+  150  ceph -v
+  151  ceph status
+  152  ceph orch host label add ceph2 _admin
+  153  ping ceph2
+  154  nano /etc/hosts
+  155  ceph orch host label add ceph2 _admin
+  156  ceph orch host label add ceph2.local _admin
+  157  ceph orch host label add 10.1.6.105 _admin
+  158  ssh-copy-id -f -i /etc/ceph/ceph.pub root@ceph2
+  159  ssh-copy-id -f -i /etc/ceph/ceph.pub root@ceph3
+  160  ceph orch host add ceph2 10.1.6.105
+  161  ceph orch host add ceph2.local 10.1.6.105
+  162  ceph orch host add ceph2.local 10.1.6.106
+  163  ceph orch host add ceph3.local 10.1.6.106
+  164  ceph orch host label add ceph2.local _admin
+  165  ceph orch host label add ceph3.local _admin
+  166  ceph config set mon
+  167  ceph config set mon public_network 10.1.99.0/24
+  168  ceph orch apply mon --unmanaged
+  169  ceph orch daemon add mon ceph2.local
+  170  ceph orch daemon add mon ceph3.local
+  171  ceph orch apply mon --placement="ceph2.local" --dry-run
+  172  ceph orch apply mon --placement="ceph1.local,ceph2.local,ceph3.local" --dry-run
+  173  ceph mgr module enable dashboard
+  174  ceph dashboard create-self-signed-cert
+  175  ceph config set mgr mgr/dashboard/server_addr 10.1.6.103
+  176  ceph dashboard set-login-credentials anon '123!@#qweQWE'
+  177  ceph dashboard set-login-credentials anon password
+  178  pwd
+  179  echo '123!@#qweQWE' >> pass
+  180  cat pass
+  181  ceph dashboard set-login-credentials anon -i pass 
+  182  ls -lah
+  183  ceph dashboard set-login-credentials anon -i /root/pass
+  184  ceph dashboard set-login-credentials anon -i pass
+  185  ls /
+  186  ls
+  187  ls -lah
+  188  mkdir /ceph
+  189  cd /ceph
+  190  which ceph.conf
+  191  find / -name ceph.conf
+  192  cd /etc/ceph/
+  193  ll
+  194  ls -lah
+  195  ceph-deploy admin ceph1.local ceph2.local ceph3.local
+  196  dnf install ceph-deploy
+  197  chronyc
+  198  cephadm shell
+  199   lsof -i -P -n | grep LISTEN
+  200  ceph orch ls
+  201  ip a
+  202  lsof -i -P -n | grep LISTEN
+  203  lsof -i -P -n | grep LISTEN | grep sshd
+  204  route
+  205  ping 10.1.6.1
+  206  ping 192.168.1.10
+  207  nmcli con sh
+  208  nmcli con sh ethernet-ens256 
+  209  nmcli con sh ens192 
+  210  nmcli con mod ens192 ipv4.gateway 10.1.6.1
+  211  ip a
+  212  nmcli con mod ens192 ipv4.gateway 10.1.6.1
+  213  nmcli con mod ens192 ip4 10.1.6.103/24 gw4 10.1.6.1 ipv6.method ignore
+  214  ip route
+  215  pkill dhclient
+  216  nmcli networking restart
+  217  nmcli networking ?
+  218  nmcli networking --help
+  219  nmcli networking off
+  220  nmcli networking on
+  221  ip route
+  222  ssh 10.1.6.105
+  223  ssh 10.1.6.106
+  224  exit
+  225  which ceph.conf
+  226  locate ceph.conf
+  227  find / -name ceph.conf
+  228  cd /etc/ceph
+  229  cat ceph.conf
+  230  nano ceph.conf
+  231  reboot now
+  232  ping 192.168.1.10
+  233  systemctl status sshd
+  234  nano /etc/ssh/sshd_config 
+  235  systemctl reload sshd
+  236  systemctl status sshd
+  237  copy root@10.1.6.105:/etc/ssh/sshd.conf /etc/ssh
+  238  cp root@10.1.6.105:/etc/ssh/sshd.conf /etc/ssh
+  239  pwd
+  240  cd /etc
+  241  cd ssh/
+  242  ls
+  243  cp root@10.1.6.105:/etc/ssh/sshd.config /etc/ssh
+  244  scp root@10.1.6.105:/etc/ssh/sshd.config /etc/ssh
+  245  pwd
+  246  scp
+  247  scp root@10.1.6.105:/etc/ssh/sshd.config /etc/ssh/sshd.config
+  248  scp root@10.1.6.105:/etc/ssh/sshd.config /root
+  249  scp root@10.1.6.105:/etc/ssh/sshd_config /etc/ssh/sshd_config
+  250  systemctl restart sshd
+  251  cat /etc/ceph/ceph.conf
+  252  ceph config set mon public_network 10.1.6.0/24
+  253  cat /etc/ceph/ceph.conf
+  254  ceph orch apply mon --unmanaged
+  255  cat /etc/ceph/ceph.conf
+  256  reboot now
+  257  cat /etc/ceph/ceph.conf
+  258  ceph orch daemon add mon ceph2.local:10.1.6.105
+  259  ceph orch daemon rm mon.ceph2.local:10.1.6.105
+  260  ceph orch daemon rm mon.ceph2.local:10.1.6.105 --force
+  261  ceph orch daemon rm mon.ceph2.local --force
+  262  ceph orch daemon rm mon.ceph2 --force
+  263  ceph orch daemon rm mon.ceph3 --force
+  264  ceph orch daemon add mon ceph2.local:10.1.6.105/24
+  265  ceph orch daemon add mon ceph3.local:10.1.6.106/24
+  266  ceph orch daemon rm mon.ceph1 --force
+  267  ceph orch apply mon --unmanaged
+  268  ceph config set mon public_network 10.1.6.0/24
+  269  ceph orch apply mon --placement="ceph1.local,ceph2.local,ceph3.local" --dry-run
+  270  pwd
+  271  cd /etc/ceph
+  272  cat ceph.conf
+  273  ceph orch apply mon --placement="ceph1.local,ceph2.local,ceph3.local"
+  274  reboot now
+  275  cd /etc/ceph
+  276  cat ceph.conf
+  277  history : grep lsof
+  278  history : grep | lsof
+  279  history | grep lsof
+  280  lsof -i -P -n | grep LISTEN
+  281  cd /etc/ceph
+  282  cat ceph.conf
+  283  nano ceph.conf
+  284  ip a
+  285  reboot now
+  286  cd /etc/ceph
+  287  nano ceph.conf
+  288  history
+  289  ceph orch daemon rm mon.ceph1 --force
+  290  ceph orch daemon rm mon.ceph1.local --force
+  291  ceph orch daemon add mon ceph1.local:10.1.6.103/24
+  292  ceph orch daemon rm mon.ceph1.local --force
+  293  ceph orch daemon rm mon.ceph1 --force
+  294  ceph orch daemon add mon ceph1.local:10.1.6.103/24
+  295  ceph orch daemon add mon.ceph1.local:10.1.6.103/24
+  296  ceph orch daemon add mon ceph1.local:10.1.6.103/24
+  297  ceph orch daemon rm ceph1
+  298  ceph orch daemon rm mon.ceph1
+  299  ceph orch daemon rm mon.ceph1 --force
+  300  ceph orch daemon rm mon.ceph1.local --force
+  301  ceph orch daemon add mon ceph1.local:10.1.6.103/24
+  302  service ceph stop mon || stop ceph-mon-all
+  303  monmaptool
+  304  history
+  305  ls
+  306  cat ceph.conf
+  307  history | grep lsof
+  308  lsof -i -P -n | grep LISTEN
+  309  reboot now
+  310  cd /etc/ceph
+  311  cat ceph.conf
+  312  lsof -i -P -n | grep LISTEN
+  313  ceph-volume
+  314  history
+  315  lsof -i -P -n | grep 8443
+  316  /usr/sbin/cephadm shell --fsid 95bb2116-10b5-11ec-b5ec-005056b06107 -c /etc/ceph/ceph.conf -k /etc/ceph/ceph.client.admin.keyring
+  317  cephadm shell lsmcli ldl
+  318  /usr/sbin/cephadm shell --fsid 95bb2116-10b5-11ec-b5ec-005056b06107 -c /etc/ceph/ceph.conf -k /etc/ceph/ceph.client.admin.keyring
+  319  cephadm version
+  320  /usr/sbin/cephadm shell --fsid 95bb2116-10b5-11ec-b5ec-005056b06107 -c /etc/ceph/ceph.conf -k /etc/ceph/ceph.client.admin.keyring
+  321  lsof -i -P -n | grep LISTEN
+  322  lsof -i -P -n | grep LISTEN | grep 8443
+  323  cephadm -s
+  324  ceph -s
+  325  systemctl stop firewalld && systemctl disable firewalld
+  326  /usr/sbin/cephadm shell --fsid 95bb2116-10b5-11ec-b5ec-005056b06107 -c /etc/ceph/ceph.conf -k /etc/ceph/ceph.client.admin.keyring
+  327  nmcli con mod ens256 ip4 10.1.99.1 802-3-ethernet.mtu 9100
+  328  nmcli con mod ethernet-ens256 ip4 10.1.99.1 802-3-ethernet.mtu 9100
+  329  nmcli con mod int ethernet-ens256 ip4 10.1.99.1 802-3-ethernet.mtu 9100
+  330  nmcli con mod ifname ethernet-ens256 ip4 10.1.99.1 802-3-ethernet.mtu 9100
+  331  nmcli con mod ifname ens256 ip4 10.1.99.1 802-3-ethernet.mtu 9100
+  332  nmcli con mod ?
+  333  nmcli con mod
+  334  nmcli con mod ethernet-ens256 802-3-ethernet.mtu 9100
+  335  ping 10.1.99.2
+  336  ping 10.1.99.2 -M do -s 9000
+  337  ping 10.1.99.2 -M do -s 8972
+  338  ping 10.1.99.3 -M do -s 8972
+  339  ping 10.1.99.1 -M do -s 8972
+  340  ping 10.1.99.2 -M do -s 8972
+  341  ping 10.1.99.3 -M do -s 8972
+  342  ip a
+  343  ping 10.1.99.3 -M do -s 8972
+  344  ping 10.1.99.3 -M do -s 7972
+  345  ping 10.1.99.3 -M do -s 1100
+  346  ping 10.1.99.3 -M do -s 1500
+  347  nmcli con mod ethernet-ens256 802-3-ethernet.mtu 8972
+  348  ping 10.1.99.3 -M do -s 1500
+  349  nmcli networking off && nmcli networking on
+  350  ping 10.1.99.3 -M do -s 1500
+  351  ping 10.1.99.2 -M do -s 1500
+  352  ping 10.1.99.3 -M do -s 1500
+  353  ceph -s
+  354  reboot now
+  355  ceph -s
+  356  cd /etc/ceph
+  357  cat ceph.conf
+  358  history
+  359  ping 10.1.99.1
+  360  ping 10.1.99.2
+  361  ping 10.1.99.3
+  362  ceph
+  363  exit
+  364  history
+  365  /usr/sbin/cephadm shell --fsid 95bb2116-10b5-11ec-b5ec-005056b06107 -c /etc/ceph/ceph.conf -k /etc/ceph/ceph.client.admin.keyring
+  366  history
+  367  /usr/sbin/cephadm shell --fsid 95bb2116-10b5-11ec-b5ec-005056b06107 -c /etc/ceph/ceph.conf -k /etc/ceph/ceph.client.admin.keyring
+  368  lsof -i -P -n | grep LISTEN
+  369  /usr/sbin/cephadm shell --fsid 95bb2116-10b5-11ec-b5ec-005056b06107 -c /etc/ceph/ceph.conf -k /etc/ceph/ceph.client.admin.keyring
+  370  history >> /root/history2
+
+
+1  ceph telemetry on
+    2  ceph telemetry on --license sharing-1-0
+    3  ip a
+    4  nano /etc/ssh/ssh_config.d/
+    5  nano /etc/ssh/ssh_config.d/
+    6  nano /etc/ssh/ssh_config.d/05-redhat.conf
+    7  dnf install sshd
+    8  dnf install openssh
+    9  cd /etc/ssh
+   10  ll
+   11  ls
+   12  ls -lah
+   13  cd ssh_config
+   14  nano ssh_config
+   15  pwd
+   16  ls
+   17  cd ssh_config.d/
+   18  ls
+   19  nano 05-redhat.conf
+   20  systemctl enable sshd
+   21  dnf install openssh-server
+   22  uname -a
+   23  cd ..
+   24  ls
+   25  cd sshd_config
+   26  nano sshd_config
+   27  systemctl enable sshd
+   28  systemctl start sshd
+   29  dnf remove openssh-server
+   30  history
+   31  exit
+   32  cephadm add-repo --release pacific
+   33  cephadm install ceph-common
+   34  ceph -v
+   35  ceph status
+   36  ceph orch apply osd --all-available-devices
+   37  ip a
+   38  ping 192.168.1.10
+   39   lsof -i -P -n | grep LISTEN
+   40  exit
+   41  ceph-volume
+   42  ceph-volume inventory
+   43  ceph orch device ls --hostname=ceph1.local --wide --refresh
+   44  ceph config set mgr mgr/cephadm/device_enhanced_scan true
+   45  cephadm shell lsmcli ldl
+   46  exit
+   47  ceph config set mgr mgr/cephadm/device_enhanced_scan false
+   48  ceph orch device ls
+   49  ceph orch device ls
+   50  ceph orch apply osd --all-available-devices
+   51  ceph orch device ls
+   52  ceph orch apply osd --all-available-devices --dry-run
+   53  ceph orch osd rm status
+   54  ceph orch device zap ceph1.local /dev/nvme0n1
+   55  ceph orch device zap ceph1.local /dev/nvme0n1 --force
+   56  ceph orch device zap ceph1.local /dev/nvme0n2 --force
+   57  ceph orch device zap ceph1.local /dev/nvme0n3 --force
+   58  ceph orch device zap ceph1.local /dev/nvme0n4 --force
+   59  ceph orch device zap ceph1.local /dev/nvme0n5 --force
+   60  ceph orch apply osd --all-available-devices --dry-run
+   61  ceph orch device ls --hostname=ceph1.local --wide --refresh
+   62  ceph orch device zap ceph2.local /dev/nvme0n5 --force
+   63  ceph orch device zap ceph2.local /dev/nvme0n4 --force
+   64  ceph orch device zap ceph2.local /dev/nvme0n3 --force
+   65  ceph orch device zap ceph2.local /dev/nvme0n2 --force
+   66  ceph orch device zap ceph2.local /dev/nvme0n1 --force
+   67  ceph orch device zap ceph3.local /dev/nvme0n1 --force
+   68  ceph orch device zap ceph3.local /dev/nvme0n2 --force
+   69  ceph orch device zap ceph3.local /dev/nvme0n3 --force
+   70  ceph orch device zap ceph3.local /dev/nvme0n4 --force
+   71  ceph orch device ls --hostname=ceph1.local --wide --refresh
+   72  ceph orch device ls --hostname=ceph2.local --wide --refresh
+   73  ceph orch device ls --hostname=ceph3.local --wide --refresh
+   74  cephadm version
+   75  exit
+   76  history
+   77  ceph orch device zap ceph1.local /dev/nvme0n1 --force
+   78  ceph -s
+   79  pvscan
+   80  pstree -p
+   81  history | grep lsof
+   82   lsof -i -P -n | grep LISTEN
+   83  exit
+   84  systemctl stop firewalld && systemctl disable firewalld
+   85  ip a
+   86  ceph config dump | grep dashboard
+   87  ceph config set mgr mgr/dashboard/server_addr 0.0.0.0
+   88  ceph config set mgr mgr/prometheus/server_addr 0.0.0.0
+   89  ceph config dump | grep dashboard
+   90  ceph mgr module disable dashboard
+   91  ceph mgr module disable prometheus
+   92  ceph mgr module enable dashboard
+   93  ceph mgr module enable prometheus
+   94  ceph config dump | grep dashboard
+   95  ceph -s
+   96  ceph config set mgr mgr/dashboard/server_addr 10.1.6.103
+   97  ceph config set mgr mgr/prometheus/server_addr 10.1.6.103
+   98  ceph config dump | grep dashboard
+   99  ceph mgr module disable dashboard && ceph mgr module disable prometheus && ceph mgr module enable dashboard && ceph mgr module enable prometheus
+  100  ceph -s
+  101  ceph -s
+  102  ceph config dump | grep dashboard
+  103  nmcli con mod ens256 ip4 10.1.99.1 802-3-ethernet.mtu 9100
+  104  exit
+  105  ls
+  106  history
+  107  ceph -s
+  108  ceph config dump | grep dashboard
+  109  ceph config set mgr mgr/grafana/server_addr 10.1.6.103
+  110  ceph config set mgr mgr/
+  111  ceph config set mgr mgr
+  112  ceph config set mgr
+  113  ceph config set mgr ?
+  114  ceph config set mgr mgr/dashboard/PROMETHEUS_API_HOST 10.1.6.103
+  115  ceph config set mgr mgr/dashboard/ALERTMANAGER_API_HOST 10.1.6.103
+  116  ceph config set mgr mgr/dashboard/GRAFANA_API_URL 10.1.6.103
+  117  ceph -s
+  118  ceph mgr module disable dashboard && ceph mgr module disable prometheus && ceph mgr module enable dashboard && ceph mgr module enable prometheus
+  119  ceph config dump | grep dashboard
+  120  ceph config set mgr mgr/dashboard/GRAFANA_API_URL 10.1.6.103:3000
+  121  ceph config set mgr mgr/dashboard/PROMETHEUS_API_HOST 10.1.6.103:9095
+  122  ceph config set mgr mgr/dashboard/ALERTMANAGER_API_HOST 10.1.6.103:9093
+  123  ceph mgr module disable dashboard && ceph mgr module disable prometheus && ceph mgr module enable dashboard && ceph mgr module enable prometheus
+  124  ceph config dump | grep dashboard
+  125  ceph -s
+  126  ceph mgr module enable dashboard
+  127  history
+  128  ceph config dump | grep dashboard
+  129  ceph config set mgr mgr/dashboard/ALERTMANAGER_API_HOST 10.1.6.103:9093
+  130  ceph config set mgr mgr/dashboard/PROMETHEUS_API_HOST 10.1.6.103:9095
+  131  ceph config set mgr mgr/dashboard/GRAFANA_API_URL 10.1.6.103:3000
+  132  ceph config set mgr mgr/grafana/server_addr 10.1.6.103
+  133  ceph config set mgr mgr/dashboard/server_addr 10.1.6.103
+  134  ceph mgr module disable dashboard && ceph mgr module disable prometheus && ceph mgr module enable dashboard && ceph mgr module enable prometheus
+  135  ceph config dump | grep dashboard
+  136  ceph config set mgr mgr/dashboard/server_addr 10.1.6.0/24
+  137  ceph mgr module disable dashboard && ceph mgr module disable prometheus && ceph mgr module enable dashboard && ceph mgr module enable prometheus
+  138  ceph config dump | grep dashboard
+  139  ceph config set mgr mgr/grafana/server_addr 10.1.6.0/24
+  140  ceph config set mgr mgr/dashboard/GRAFANA_API_URL 10.1.6.103:3000
+  141  ceph mgr module disable dashboard && ceph mgr module disable prometheus && ceph mgr module enable dashboard && ceph mgr module enable prometheus
+  142  ceph config dump | grep dashboard
+  143  ceph config set mgr mgr/dashboard/GRAFANA_API_URL 0.0.0.0:3000
+  144  ceph mgr module disable dashboard && ceph mgr module disable prometheus && ceph mgr module enable dashboard && ceph mgr module enable prometheus
+  145  ceph config dump | grep dashboard
+  146  ceph config set mgr mgr/dashboard/server_addr 10.1.6.103
+  147  ceph config set mgr mgr/dashboard/PROMETHEUS_API_HOST 0.0.0.0:9095
+  148  ceph config set mgr mgr/dashboard/ALERTMANAGER_API_HOST 0.0.0.0:9093
+  149  ceph config dump | grep dashboard
+  150  ceph mgr module disable dashboard && ceph mgr module disable prometheus && ceph mgr module enable dashboard && ceph mgr module enable prometheus
+  151  ceph config dump | grep dashboard
+  152  history | grep lsof
+  153  lsof -i -P -n | grep LISTEN
+  154  exit
+  155  ping ceph2.local
+  156  ping ceph3.local
+  157  history >> /root/history1
+  158  exit
+  159  history
+
+[ceph: root@admin /]# radosgw-admin realm create --rgw-realm=vcinity --default
+{
+    "id": "254cd28d-090b-4144-ac22-55eb00a5c5f1",
+    "name": "vcinity",
+    "current_period": "f5d28c5c-d0c6-4480-b473-533c98ea05fc",
+    "epoch": 1
+}
+[ceph: root@admin /]# radosgw-admin zonegroup create --rgw-zonegroup=319 --endpoints=http://rgw1:80 --rgw-realm=vcinity --master --default
+{
+    "id": "75bb12ed-e3c2-43b3-aa5e-e46cfa7e4872",
+    "name": "319",
+    "api_name": "319",
+    "is_master": "true",
+    "endpoints": [
+        "http://rgw1:80"
+    ],
+    "hostnames": [],
+    "hostnames_s3website": [],
+    "master_zone": "",
+    "zones": [],
+    "placement_targets": [],
+    "default_placement": "",
+    "realm_id": "254cd28d-090b-4144-ac22-55eb00a5c5f1",
+    "sync_policy": {
+        "groups": []
+    }
+}
+[ceph: root@admin /]# # radosgw-admin zone create --rgw-zonegroup=us --rgw-zone=us-east \
+[ceph: root@admin /]#                             --master --default \
+>                             --endpoints={http://fqdn}[,{http://fqdn}]^C
+[ceph: root@admin /]# radosgw-admin zone create --rgw-zonegroup=vcinity --rgw-zone=319 --master --default --endpoints={http://fqdn}[,{http://fqdn}]
+unable to initialize zonegroup vcinity: (2) No such file or directory
+[ceph: root@admin /]# radosgw-admin zone
+ERROR: Unknown command
+Expected one of the following:
+  create
+  default
+  delete
+  get
+  list
+  modify
+  placement
+  rename
+  set
+[ceph: root@admin /]# radosgw-admin zone list
+{
+    "default_info": "",
+    "zones": []
+}
+[ceph: root@admin /]# radosgw-admin zone create --rgw-zonegroup=319 --rgw-zone=319 --master --default --endpoints={http://fqdn}[,{http://fqdn}]
+{
+    "id": "f079ec31-3e81-48de-ab28-50f5c0d6b480",
+    "name": "319",
+    "domain_root": "319.rgw.meta:root",
+    "control_pool": "319.rgw.control",
+    "gc_pool": "319.rgw.log:gc",
+    "lc_pool": "319.rgw.log:lc",
+    "log_pool": "319.rgw.log",
+    "intent_log_pool": "319.rgw.log:intent",
+    "usage_log_pool": "319.rgw.log:usage",
+    "roles_pool": "319.rgw.meta:roles",
+    "reshard_pool": "319.rgw.log:reshard",
+    "user_keys_pool": "319.rgw.meta:users.keys",
+    "user_email_pool": "319.rgw.meta:users.email",
+    "user_swift_pool": "319.rgw.meta:users.swift",
+    "user_uid_pool": "319.rgw.meta:users.uid",
+    "otp_pool": "319.rgw.otp",
+    "system_key": {
+        "access_key": "",
+        "secret_key": ""
+    },
+    "placement_pools": [
+        {
+            "key": "default-placement",
+            "val": {
+                "index_pool": "319.rgw.buckets.index",
+                "storage_classes": {
+                    "STANDARD": {
+                        "data_pool": "319.rgw.buckets.data"
+                    }
+                },
+                "data_extra_pool": "319.rgw.buckets.non-ec",
+                "index_type": 0
+            }
+        }
+    ],
+    "realm_id": "254cd28d-090b-4144-ac22-55eb00a5c5f1",
+    "notif_pool": "319.rgw.log:notif"
+}
+[ceph: root@admin /]# radosgw-admin zonegroup remove --rgw-zonegroup=default --rgw-zone=default
+failed to init zonegroup: (2) No such file or directory
+[ceph: root@admin /]# radosgw-admin user create --uid="syncuser" --display-name="syncuser" --system
+{
+    "user_id": "syncuser",
+    "display_name": "syncuser",
+    "email": "",
+    "suspended": 0,
+    "max_buckets": 1000,
+    "subusers": [],
+    "keys": [
+        {
+            "user": "syncuser",
+            "access_key": "H05OCKKYETNJFNVFGMGE",
+            "secret_key": "M6nMH7JpfNTr4I78NM7z6PCfxiXNenGtQLn9qouP"
+        }
+    ],
+    "swift_keys": [],
+    "caps": [],
+    "op_mask": "read, write, delete",
+    "system": "true",
+    "default_placement": "",
+    "default_storage_class": "",
+    "placement_tags": [],
+    "bucket_quota": {
+        "enabled": false,
+        "check_on_raw": false,
+        "max_size": -1,
+        "max_size_kb": 0,
+        "max_objects": -1
+    },
+    "user_quota": {
+        "enabled": false,
+        "check_on_raw": false,
+        "max_size": -1,
+        "max_size_kb": 0,
+        "max_objects": -1
+    },
+    "temp_url_keys": [],
+    "type": "rgw",
+    "mfa_ids": []
+}
+
+[ceph: root@admin /]# radosgw-admin zone modify --rgw-zone=319 --access-key=H05OCKKYETNJFNVFGMGE --secret=M6nMH7JpfNTr4I78NM7z6PCfxiXNenGtQLn9qouP
+{
+    "id": "f079ec31-3e81-48de-ab28-50f5c0d6b480",
+    "name": "319",
+    "domain_root": "319.rgw.meta:root",
+    "control_pool": "319.rgw.control",
+    "gc_pool": "319.rgw.log:gc",
+    "lc_pool": "319.rgw.log:lc",
+    "log_pool": "319.rgw.log",
+    "intent_log_pool": "319.rgw.log:intent",
+    "usage_log_pool": "319.rgw.log:usage",
+    "roles_pool": "319.rgw.meta:roles",
+    "reshard_pool": "319.rgw.log:reshard",
+    "user_keys_pool": "319.rgw.meta:users.keys",
+    "user_email_pool": "319.rgw.meta:users.email",
+    "user_swift_pool": "319.rgw.meta:users.swift",
+    "user_uid_pool": "319.rgw.meta:users.uid",
+    "otp_pool": "319.rgw.otp",
+    "system_key": {
+        "access_key": "H05OCKKYETNJFNVFGMGE",
+        "secret_key": "M6nMH7JpfNTr4I78NM7z6PCfxiXNenGtQLn9qouP"
+    },
+    "placement_pools": [
+        {
+            "key": "default-placement",
+            "val": {
+                "index_pool": "319.rgw.buckets.index",
+                "storage_classes": {
+                    "STANDARD": {
+                        "data_pool": "319.rgw.buckets.data"
+                    }
+                },
+                "data_extra_pool": "319.rgw.buckets.non-ec",
+                "index_type": 0
+            }
+        }
+    ],
+    "realm_id": "254cd28d-090b-4144-ac22-55eb00a5c5f1",
+    "notif_pool": "319.rgw.log:notif"
+}
+[ceph: root@admin /]#
+
+
+mkdir /mnt/RBD01
+mkdir /mnt/RBD02
+mkdir /mnt/RBD03
+mkdir /mnt/RBD04
+mkdir /mnt/RBD05
+
+mkdir /mnt/RBD01-ECP
+mkdir /mnt/RBD02-ECP
+mkdir /mnt/RBD03-ECP
+mkdir /mnt/RBD04-ECP
+mkdir /mnt/RBD05-ECP
+
+rbd device map REPL01/RDM01 --id admin
+rbd device map REPL01/RDM02 --id admin
+rbd device map REPL01/RDM03 --id admin
+rbd device map REPL01/RDM04 --id admin
+rbd device map REPL01/RDM05 --id admin
+
+rbd device map REPL01/RDM01-ECP --id admin
+rbd device map REPL01/RDM02-ECP --id admin
+rbd device map REPL01/RDM03-ECP --id admin
+rbd device map REPL01/RDM04-ECP --id admin
+rbd device map REPL01/RDM05-ECP --id admin
