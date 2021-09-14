@@ -1,11 +1,42 @@
+echo '123!@#qweQWE' > ~/rootpass
+
+
 /usr/sbin/cephadm shell --fsid f50cce0e-11c7-11ec-97ab-005056b06bd1 -c /etc/ceph/ceph.conf -k /etc/ceph/ceph.client.admin.keyring
 
+dnf install sshpass
 
 Net/Disk/hosts already setup (SET-NTP) (FIREWALL-OFF)
 ```
 dnf info oracle-epel-release-el8.x86_64
 ```
+dnf config-manager --enable ol8_baseos_latest ol8_addons ol8_UEKR6
+dnf update
+dnf config-manager --enable ol8_baseos_latest ol8_UEKR6 ol8_UEKR6_RDMA
 
+yum -y remove 'ibacm*'
+yum -y remove 'ib-bonding*'
+yum -y remove 'ibutils*'
+yum -y remove 'infiniband-diags*'
+yum -y remove 'libibacl*'
+yum -y remove 'libibcm*'
+yum -y remove 'libibmad*'
+yum -y remove 'libibumad*'
+yum -y remove 'libibverbs*'
+yum -y remove 'libmlx4*'
+yum -y remove 'librdmacm*'
+yum -y remove 'libsdp*'
+yum -y remove 'mstflint*'
+yum -y remove 'ofed-docs*'
+yum -y remove 'ofed-scripts*'
+yum -y remove 'opensm*'
+yum -y remove 'oracle-rdma-tools'
+yum -y remove 'perftest*'
+yum -y remove 'qperf*'
+yum -y remove 'sdpnetstat*'
+yum -y remove 'rdma*'
+yum -y remove 'rds-tools*'
+yum -y remove 'rdma-core*'
+yum install oracle-rdma-release --allowerasing
 
 nano /etc/yum.repos.d/ceph.repo
 
@@ -933,22 +964,74 @@ mkdir /mnt/RBD01
 mkdir /mnt/RBD02
 mkdir /mnt/RBD03
 mkdir /mnt/RBD04
-mkdir /mnt/RBD05
 
 mkdir /mnt/RBD01-ECP
 mkdir /mnt/RBD02-ECP
 mkdir /mnt/RBD03-ECP
 mkdir /mnt/RBD04-ECP
-mkdir /mnt/RBD05-ECP
 
-rbd device map REPL01/RDM01 --id admin
-rbd device map REPL01/RDM02 --id admin
-rbd device map REPL01/RDM03 --id admin
-rbd device map REPL01/RDM04 --id admin
-rbd device map REPL01/RDM05 --id admin
 
-rbd device map REPL01/RDM01-ECP --id admin
-rbd device map REPL01/RDM02-ECP --id admin
-rbd device map REPL01/RDM03-ECP --id admin
-rbd device map REPL01/RDM04-ECP --id admin
-rbd device map REPL01/RDM05-ECP --id admin
+rbd create REPL01/aRBD01 --object-size 256K --stripe-unit 1024 --stripe-count 16 --size 15360 --image-feature layering --image-feature deep-flatten --image-feature striping --image-feature exclusive-lock --image-feature object-map --image-feature fast-diff
+rbd lock add --shared gpfs REPL01/aRBD01 1
+rbd create REPL01/aRBD02 --object-size 256K --stripe-unit 1024 --stripe-count 16 --size 15360 --image-feature layering --image-feature deep-flatten --image-feature striping --image-feature exclusive-lock --image-feature object-map --image-feature fast-diff
+rbd lock add --shared gpfs REPL01/aRBD02 2
+rbd create REPL01/aRBD03 --object-size 256K --stripe-unit 1024 --stripe-count 16 --size 15360 --image-feature layering --image-feature deep-flatten --image-feature striping --image-feature exclusive-lock --image-feature object-map --image-feature fast-diff
+rbd lock add --shared gpfs REPL01/aRBD03 3
+rbd create REPL01/aRBD04 --object-size 256K --stripe-unit 1024 --stripe-count 16 --size 15360 --image-feature layering --image-feature deep-flatten --image-feature striping --image-feature exclusive-lock --image-feature object-map --image-feature fast-diff
+rbd lock add --shared gpfs REPL01/aRBD04 4
+
+rbd device map REPL01/aRDM01 --id admin
+rbd device map REPL01/aRDM02 --id admin
+rbd device map REPL01/aRDM03 --id admin
+rbd device map REPL01/aRDM04 --id admin
+
+rbd create --data-pool ECP01 REPL01/bRBD01-ECP --object-size 256K --stripe-unit 1024 --stripe-count 16 --size 15360 --image-feature layering --image-feature deep-flatten --image-feature striping --image-feature exclusive-lock --image-feature object-map --image-feature fast-diff
+rbd lock add --shared gpfs REPL01/bRBD01-ECP 5
+rbd create --data-pool ECP01 REPL01/bRBD02-ECP --object-size 256K --stripe-unit 1024 --stripe-count 16 --size 15360 --image-feature layering --image-feature deep-flatten --image-feature striping --image-feature exclusive-lock --image-feature object-map --image-feature fast-diff
+rbd lock add --shared gpfs REPL01/bRBD02-ECP 6
+rbd create --data-pool ECP01 REPL01/bRBD03-ECP --object-size 256K --stripe-unit 1024 --stripe-count 16 --size 15360 --image-feature layering --image-feature deep-flatten --image-feature striping --image-feature exclusive-lock --image-feature object-map --image-feature fast-diff
+rbd lock add --shared gpfs REPL01/bRBD03-ECP 7
+rbd create --data-pool ECP01 REPL01/bRBD04-ECP --object-size 256K --stripe-unit 1024 --stripe-count 16 --size 15360 --image-feature layering --image-feature deep-flatten --image-feature striping --image-feature exclusive-lock --image-feature object-map --image-feature fast-diff 
+rbd lock add --shared gpfs REPL01/bRBD04-ECP 8
+
+rbd device map REPL01/bRDM01-ECP --id admin
+rbd device map REPL01/bRDM02-ECP --id admin
+rbd device map REPL01/bRDM03-ECP --id admin
+rbd device map REPL01/bRDM04-ECP --id admin
+
+
+s
+
+
+#####SCALE
+./Spectrum_Scale_Data_Management-5.1.1.1-x86_64-Linux-install
+cd /usr/lpp/mmfs/5.1.1.1/gpfs_rpms/
+dnf install gpfs.base-5.1.1-1.x86_64.rpm gpfs.afm.cos-1.0.0-2.x86_64.rpm gpfs.docs-5.1.1-1.noarch.rpm gpfs.adv-5.1.1-1.x86_64.rpm
+sed -i '8i\PATH="${PATH:+${PATH}:}/usr/lpp/mmfs/bin"\' /root/.bashrc
+
+
+#####SSH-KEYGEN
+ssh-keygen -t rsa -b 4096 -C "no@way.com" -N '' -f /root/rsa
+sshpass -f /root/rootpass ssh root@10.1.6.13 "ssh-keygen -t rsa -b 4096 -C "no@way.com" -N '' -f /root/rsa"
+sshpass -f /root/rootpass ssh root@10.1.6.11 "ssh-keygen -t rsa -b 4096 -C "no@way.com" -N '' -f /root/rsa"
+sshpass -f /root/rootpass ssh root@10.1.6.11 "ssh-keygen -t rsa -b 4096 -C "no@way.com" -N '' -f /root/rsa"
+sshpass -f /root/rootpass ssh root@10.1.6.11 "ssh-keygen -t rsa -b 4096 -C "no@way.com" -N '' -f /root/rsa"
+
+#####PASS-FILE
+sshpass -f /root/rootpass ssh root@10.1.6.11 "echo 123\!@#qweQWE > ~/rootpass"
+sshpass -f /root/rootpass ssh root@10.1.6.12 "echo 123\!@#qweQWE > ~/rootpass"
+sshpass -f /root/rootpass ssh root@10.1.6.13 "echo 123\!@#qweQWE > ~/rootpass"
+
+#####SSH-COPYID
+sshpass -f /root/rootpass ssh-copy-id -o StrictHostKeyChecking=no root@10.1.6.11
+sshpass -f /root/rootpass ssh-copy-id -o StrictHostKeyChecking=no root@10.1.6.12
+sshpass -f /root/rootpass ssh-copy-id -o StrictHostKeyChecking=no root@10.1.6.13
+sshpass -f /root/rootpass ssh root@10.1.6.11 "sshpass -f /root/rootpass ssh-copy-id -o StrictHostKeyChecking=no root@10.1.6.10"
+sshpass -f /root/rootpass ssh root@10.1.6.11 "sshpass -f /root/rootpass ssh-copy-id -o StrictHostKeyChecking=no root@10.1.6.12"
+sshpass -f /root/rootpass ssh root@10.1.6.11 "sshpass -f /root/rootpass ssh-copy-id -o StrictHostKeyChecking=no root@10.1.6.13"
+sshpass -f /root/rootpass ssh root@10.1.6.12 "sshpass -f /root/rootpass ssh-copy-id -o StrictHostKeyChecking=no root@10.1.6.10"
+sshpass -f /root/rootpass ssh root@10.1.6.12 "sshpass -f /root/rootpass ssh-copy-id -o StrictHostKeyChecking=no root@10.1.6.11"
+sshpass -f /root/rootpass ssh root@10.1.6.12 "sshpass -f /root/rootpass ssh-copy-id -o StrictHostKeyChecking=no root@10.1.6.13"
+sshpass -f /root/rootpass ssh root@10.1.6.13 "sshpass -f /root/rootpass ssh-copy-id -o StrictHostKeyChecking=no root@10.1.6.10"
+sshpass -f /root/rootpass ssh root@10.1.6.13 "sshpass -f /root/rootpass ssh-copy-id -o StrictHostKeyChecking=no root@10.1.6.11"
+sshpass -f /root/rootpass ssh root@10.1.6.13 "sshpass -f /root/rootpass ssh-copy-id -o StrictHostKeyChecking=no root@10.1.6.12"
