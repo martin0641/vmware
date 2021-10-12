@@ -19,7 +19,7 @@ adminuser=cephadmin
 subnetbroadcast=10.99.0.0
 subnetcidr=24
 gateway=10.99.0.1
-
+rootpass='MDxControl!'
 
 # !DeclaredVariables
 # --------------------------------------
@@ -27,10 +27,31 @@ gateway=10.99.0.1
 # Input Processing
 # --------------------------------------
 
+cat <<EOF >> /etc/yum.repos.d/ceph.repo
+[ceph] 
+name=Ceph packages for $basearch 
+baseurl=https://download.ceph.com/rpm-pacific/el8/$basearch 
+enabled=1 
+priority=2 
+gpgcheck=1 
+gpgkey=https://download.ceph.com/keys/release.asc 
+[ceph-noarch] 
+name=Ceph noarch packages 
+baseurl=https://download.ceph.com/rpm-pacific/el8/noarch
+enabled=1 
+priority=2 
+gpgcheck=1 
+gpgkey=https://download.ceph.com/keys/release.asc 
+[ceph-source] 
+name=Ceph source packages 
+baseurl=https://download.ceph.com/rpm-pacific/el8/SRPMS 
+enabled=0 
+priority=2 
+gpgcheck=1 
+gpgkey=https://download.ceph.com/keys/release.asc
+EOF
 
-END=$monnumber
-for ((i=monipeinitialoctet4;i<=END;i++)); do
-    echo $monhostname$i.$fqdn
-    echo ${192.168.10.1%??}]
-    monipeinitialoctet4=$monipeinitialoctet4+1
-done
+dnf install epel-release
+dnf update
+
+dnf install -y htop 
