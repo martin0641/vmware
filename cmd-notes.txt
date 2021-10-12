@@ -50,7 +50,7 @@ gpgcheck=1
 gpgkey=https://download.ceph.com/keys/release.asc 
 [ceph-noarch] 
 name=Ceph noarch packages 
-baseurl=https://download.ceph.com/rpm-pacific/el8/noarch 
+baseurl=https://download.ceph.com/rpm-pacific/el8/noarch
 enabled=1 
 priority=2 
 gpgcheck=1 
